@@ -160,6 +160,10 @@ const store = {
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 };
+// config.js의 RESET_ID 값을 바꾸면, 각 브라우저에 남은 풀이 기록·전송 대기 기록을 한 번 지웁니다.
+(function(){try{const v=String(CFG.RESET_ID||'');if(!v||store.get('mt_reset_id',null)===v)return;
+  Object.keys(localStorage).filter(k=>k.indexOf('mt_hist_')===0||k==='mt_queue').forEach(k=>localStorage.removeItem(k));
+  store.set('mt_reset_id',v)}catch(e){}})();
 let USER = store.get('mt_user',null);
 let TIMER = null;
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -411,6 +415,12 @@ function examSummary(){
 }
 
 /* ───────────── 내 기록 ───────────── */
+function clearMyRecords(){
+  if(!confirm('이 브라우저에 저장된 '+USER.name+'('+USER.sid+') 님의 풀이 기록을 모두 지울까요?\n아직 구글 시트로 보내지 못한 기록도 함께 지워집니다. 되돌릴 수 없습니다.'))return;
+  try{localStorage.removeItem('mt_hist_'+USER.sid)}catch(e){}
+  store.set('mt_queue',queue().filter(r=>String(r.sid)!==String(USER.sid)));
+  toast('이 기기의 내 기록을 지웠습니다.');go('records');
+}
 function vRecords(){
   const hist=store.get('mt_hist_'+USER.sid,[]).slice().reverse();
   const q=queue().length;
@@ -419,6 +429,7 @@ function vRecords(){
   <h2>개념퀴즈</h2><div id="byunit"></div>
   <h2>기출문제</h2><div id="bytype"></div>
   <h2>최근 제출</h2>
+  <div class="row" style="margin:-4px 0 10px"><span class="muted small">이 화면의 기록은 지금 쓰는 브라우저에 저장된 것입니다. 구글 시트의 기록은 지워지지 않습니다.</span><span class="spacer"></span><button class="btn sm ghost" onclick="clearMyRecords()">이 기기의 내 기록 지우기</button></div>
   <div class="card tablewrap"><table class="t"><thead><tr><th>시각</th><th>구분</th><th>문항</th><th>득점률</th><th>소요</th></tr></thead><tbody>
   ${hist.slice(0,200).map(h=>`<tr><td class="small">${new Date(h.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td class="small">${esc(h.mode)}</td><td class="small">${esc(h.group)}<div class="muted">${esc(h.mode==='개념퀴즈'?String(h.question).slice(0,50)+(String(h.question).length>50?'…':''):h.unit)}</div></td><td>${h.rate}%</td><td>${fmt(h.secs)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">아직 기록이 없습니다.</td></tr>'}
   </tbody></table></div>`;
