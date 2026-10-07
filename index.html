@@ -266,7 +266,7 @@ function doLogin(e){
   if(!sid||!nm){toast('학번과 이름을 모두 입력하세요.');return}
   USER={sid,name:nm}; store.set('mt_user',USER); go('home');
 }
-function logout(){if(!confirm('다른 학번으로 바꿀까요?'))return;USER=null;store.set('mt_user',null);go('login')}
+function logout(){if(!confirm('로그아웃할까요?'))return;USER=null;store.set('mt_user',null);go('login')}
 
 /* ───────────── 홈 ───────────── */
 function vHome(){
@@ -285,7 +285,7 @@ function vHome(){
   <h2>학습 메뉴</h2>
   <div class="grid g3">
     <div class="card home-tile" onclick="go('notes')"><span class="pill">내용 정리</span><div class="t">빵꾸노트 목차별 핵심 정리 ${UNITS.length}단원</div>
-      <div class="d">'신론' 20단원과 '교재연구' & '성취기준' 13단원을 목차 순서대로 정리했습니다.</div></div>
+      <div class="d">수학교육신론 20단원과 수교재 & 성취기준 13단원을 목차 순서대로 정리했습니다.</div></div>
     <div class="card home-tile" onclick="go('quiz')"><span class="pill">개념 퀴즈</span><div class="t">개념 설명하기 · 개념 이름 쓰기 ${allConceptQ().length}문항</div>
       <div class="d">단원을 골라 개념을 설명하거나, 설명을 읽고 개념의 이름을 정확하게 써 봅니다.</div></div>
     <div class="card home-tile" onclick="go('exam')"><span class="pill">기출문제</span><div class="t">2016~2026 수학교육론 기출 ${EXAMS.length}문항</div>
@@ -297,7 +297,7 @@ function bestScores(mode='기출문제'){const b={};for(const h of store.get('mt
 
 /* ───────────── 기출문제 목록 ───────────── */
 function examUnitGroups(){return UNITS.map(u=>[u,EXAMS.filter(e=>e.units.includes(u.id))]).filter(g=>g[1].length)}
-function examUnitNames(e){return e.units.map(id=>{const u=UNITS.find(x=>x.id===id);return u?(u.part==='신론'?'신론 ':'교재 ')+u.no+'. '+u.title:id})}
+function examUnitNames(e){return e.units.map(id=>{const u=UNITS.find(x=>x.id===id);return u?partName(u.part)+' '+u.no+'. '+u.title:id})}
 function vExamSetup(){
   const st=store.get('mt_eset',{by:'이론'});
   $app.innerHTML=`<h1>기출문제</h1><p class="lead">2016~2026학년도 중등 1차 전공 A·B의 수학교육론 문항(매년 24점)입니다. 이론별 보기는 빵꾸노트 목차 순서이며, 여러 단원에 걸친 문항은 각 단원에 모두 들어 있습니다. 문항을 누르면 제한 시간이 시작됩니다. 묶음 전체를 이어서 푸는 세트 풀이도 할 수 있어요.</p>
@@ -408,23 +408,24 @@ function vRecords(){
   const q=queue().length;
   $app.innerHTML=`<h1>내 기록</h1><p class="lead">${esc(USER.name)} (${esc(USER.sid)}) · 이 기기에서 제출한 ${hist.length}건</p>
   ${CFG.GAS_URL?`<div class="note">구글 시트 전송: ${q?`<b>${q}건 대기 중</b> <button class="btn sm" onclick="flushQueue().then(()=>go('records'))">다시 보내기</button>`:'모두 전송됨'}</div>`:`<div class="note">구글 시트 주소가 설정되지 않아 이 브라우저에만 저장됩니다.</div>`}
-  <h2>기출문제 · 빵꾸노트 단원별 득점률</h2><div id="bytype"></div>
-  <h2>개념 퀴즈 · 단원별 득점률</h2><div id="byunit"></div>
+  <h2>개념퀴즈</h2><div id="byunit"></div>
+  <h2>기출문제</h2><div id="bytype"></div>
   <h2>최근 제출</h2>
   <div class="card tablewrap"><table class="t"><thead><tr><th>시각</th><th>구분</th><th>문항</th><th>득점률</th><th>소요</th></tr></thead><tbody>
   ${hist.slice(0,200).map(h=>`<tr><td class="small">${new Date(h.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td class="small">${esc(h.mode)}</td><td class="small">${esc(h.group)}<div class="muted">${esc(h.mode==='개념퀴즈'?String(h.question).slice(0,50)+(String(h.question).length>50?'…':''):h.unit)}</div></td><td>${h.rate}%</td><td>${fmt(h.secs)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">아직 기록이 없습니다.</td></tr>'}
   </tbody></table></div>`;
   const best=bestScores();
-  const rows=examUnitGroups().map(([u,list])=>{const t=u.part+' '+unitLabel(u);const done=list.filter(e=>e.id in best);return [t,list.length,done.length,done.length?Math.round(done.reduce((a,e)=>a+best[e.id],0)/done.length):null]}).filter(r=>r[2]);
+  const rows=examUnitGroups().map(([u,list])=>{const t=partName(u.part)+' '+unitLabel(u);const done=list.filter(e=>e.id in best);return [t,list.length,done.length,done.length?Math.round(done.reduce((a,e)=>a+best[e.id],0)/done.length):null]}).filter(r=>r[2]);
   $('#bytype').innerHTML=rows.length?`<div class="card">${rows.map(([t,n,d,a])=>`<div style="margin:6px 0"><div class="row small"><span>${esc(t)}</span><span class="spacer"></span><span class="muted">${d}/${n}문항 · 평균 ${a}%</span></div><div class="bar"><i style="width:${a}%"></i></div></div>`).join('')}</div>`:'<p class="muted">기출문제를 풀면 이론별 득점률이 표시됩니다.</p>';
   const cb=bestScores('개념퀴즈');
   const urows=UNITS.filter(u=>!u.pending).map(u=>{const d=u.quiz.filter(q=>q.id in cb);return [u,d.length,d.length?Math.round(d.reduce((a,q)=>a+cb[q.id],0)/d.length):null]}).filter(r=>r[1]);
-  $('#byunit').innerHTML=urows.length?`<div class="card">${urows.map(([u,d,a])=>`<div style="margin:6px 0"><div class="row small"><span>${esc(u.part)} ${esc(unitLabel(u))}</span><span class="spacer"></span><span class="muted">${d}/${u.quiz.length}문항 · 평균 ${a}%</span></div><div class="bar"><i style="width:${a}%"></i></div></div>`).join('')}</div>`:'<p class="muted">개념 퀴즈를 풀면 단원별 득점률이 표시됩니다.</p>';
+  $('#byunit').innerHTML=urows.length?`<div class="card">${urows.map(([u,d,a])=>`<div style="margin:6px 0"><div class="row small"><span>${esc(partName(u.part))} ${esc(unitLabel(u))}</span><span class="spacer"></span><span class="muted">${d}/${u.quiz.length}문항 · 평균 ${a}%</span></div><div class="bar"><i style="width:${a}%"></i></div></div>`).join('')}</div>`:'<p class="muted">개념 퀴즈를 풀면 단원별 득점률이 표시됩니다.</p>';
 }
 
 /* ───────────── 개념학습 공통 ───────────── */
 const UNITS = window.CONCEPT_UNITS||[];
-const PARTS=[['신론',"'신론' 빵꾸노트 목차"],['교재연구',"'교재연구' & '성취기준' 목차"]];
+const PARTS=[['신론','수학교육신론'],['교재연구','수교재 & 성취기준']];
+function partName(p){return (PARTS.find(x=>x[0]===p)||[p,p])[1]}
 function unitLabel(u){return `${u.no}. ${u.title}`}
 function md(s){
   const out=[];let list=null;
@@ -463,7 +464,7 @@ function vNotes(uid){
     <nav class="toc card">${side}</nav>
     <div>
       <div class="mobile-only" style="margin-bottom:12px">${unitSelectHTML('nsel',u.id,false)}</div>
-      <article class="card notes"><div class="muted small">${esc(u.part==='신론'?"'신론'":"'교재연구' & '성취기준'")}</div><h2 style="margin-top:4px">${esc(unitLabel(u))}</h2>${body}</article>
+      <article class="card notes"><div class="muted small">${esc(partName(u.part))}</div><h2 style="margin-top:4px">${esc(unitLabel(u))}</h2>${body}</article>
       <div class="row" style="margin-top:12px">${prev?`<button class="btn sm" onclick="vNotes('${prev.id}')">← ${esc(unitLabel(prev))}</button>`:''}<span class="spacer"></span>${next?`<button class="btn sm" onclick="vNotes('${next.id}')">${esc(unitLabel(next))} →</button>`:''}</div>
     </div>
   </div>`;
@@ -506,7 +507,7 @@ function showConcept(){
   stopTimer(); window.scrollTo(0,0);
   const c=CQ.list[CQ.i]; CQ.t0=Date.now(); CQ.done=false;
   const u=UNITS.find(x=>x.id===c.unit); const isTerm=c.type==='용어';
-  $app.innerHTML=`<div class="row"><span class="pill">${isTerm?'개념 이름 쓰기':'개념 설명하기'}</span><span class="muted small">${esc(u.part)} · ${esc(unitLabel(u))}</span><span class="spacer"></span><span class="muted small">${CQ.i+1} / ${CQ.list.length}</span><span class="timer" id="tm">0:00</span></div>
+  $app.innerHTML=`<div class="row"><span class="pill">${isTerm?'개념 이름 쓰기':'개념 설명하기'}</span><span class="muted small">${esc(partName(u.part))} · ${esc(unitLabel(u))}</span><span class="spacer"></span><span class="muted small">${CQ.i+1} / ${CQ.list.length}</span><span class="timer" id="tm">0:00</span></div>
   <div class="bar" style="margin:10px 0 4px"><i style="width:${100*CQ.i/CQ.list.length}%"></i></div>
   <div class="card" style="margin-top:12px">
     <div class="qtext">${esc(c.q)}</div>
@@ -549,7 +550,7 @@ function submitConcept(giveUp){
   </div>
   <div class="row" style="margin-top:14px"><span class="spacer"></span><button class="btn primary" id="nx">${CQ.i+1<CQ.list.length?'다음 문항 →':'결과 보기'}</button></div>`;
   $('#nx').focus(); $('#nx').onclick=()=>{CQ.i++;CQ.i<CQ.list.length?showConcept():conceptSummary()};
-  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'개념퀴즈',qid:c.id,group:`${u.part} ${unitLabel(u)}`,unit:isTerm?'개념 이름 쓰기':'개념 설명하기',
+  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'개념퀴즈',qid:c.id,group:`${partName(u.part)} ${unitLabel(u)}`,unit:isTerm?'개념 이름 쓰기':'개념 설명하기',
     question:c.q,answer:giveUp?'(모르겠어요)':text,score:rate,max:100,rate,hits,miss,secs,limit:'',over:''});
 }
 function conceptSummary(){
