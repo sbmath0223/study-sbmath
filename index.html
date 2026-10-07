@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>수학교육론 임용 대비</title>
-<meta name="description" content="중등 수학 임용 수학교육론 개념학습·기출문제 서답형 연습과 키워드 채점">
+<meta name="description" content="중등 수학 임용 수학교육론 기출문제(2016~2026) 서답형 연습과 채점">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
@@ -112,23 +112,42 @@ table.t td:nth-child(2),table.t th:nth-child(2){white-space:nowrap}
   h1{font-size:22px}
   .card{padding:16px}
 }
+.blank{display:grid;grid-template-columns:minmax(90px,auto) 1fr;gap:8px 12px;align-items:center;margin-bottom:10px}
+.blank label{font-weight:500}
+@media (max-width:640px){.blank{grid-template-columns:1fr}}
+.notes-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;align-items:start}
+.toc{position:sticky;top:76px;max-height:calc(100vh - 100px);overflow:auto;padding:12px}
+.toc-h{font-size:12px;font-weight:700;color:var(--muted);margin:10px 6px 4px}
+.toc-i{display:block;padding:6px 8px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.4}
+.toc-i:hover{background:var(--surface2)} .toc-i.on{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.toc-i.pend{color:var(--muted)}
+.notes .sec{border-top:1px solid var(--line);padding-top:6px;margin-top:14px}
+.notes .sec h3{color:var(--accent)} .notes .sub-h{font-size:14px;margin:12px 0 4px}
+.notes .src-img{margin:8px 0;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;overflow-x:auto}
+.notes .src-img img{display:block;max-width:100%;height:auto;margin:0 auto}
+.notes i{color:var(--muted);font-size:12.5px} .notes ul{padding-left:20px;margin:6px 0} .notes p{margin:6px 0}
+.mobile-only{display:none}
+@media (max-width:820px){.notes-layout{grid-template-columns:1fr}.toc{display:none}.mobile-only{display:block}}
+footer.site{border-top:1px solid var(--line);padding:18px 0;color:var(--muted);font-size:13px;text-align:center}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <div class="brand" onclick="go('home')">수학교육론<small>임용 대비 서답형</small></div>
+  <div class="brand" onclick="go('home')">수학교육론<small>임용 대비</small></div>
   <nav class="tabs" id="tabs"></nav>
 </div></header>
 <main><div class="wrap" id="app"></div></main>
+<footer class="site"><div class="wrap">© 2026 또빈쌤. All rights reserved. · 기출 문항 출처: 한국교육과정평가원</div></footer>
 
 <script src="config.js"></script>
-<script src="data/concepts.js"></script>
 <script src="data/exams.js"></script>
+<script src="data/concepts.js"></script>
 <script>
 "use strict";
-const CFG = Object.assign({GAS_URL:"",PASS_RATE:70}, window.APP_CONFIG||{});
-const CONCEPTS = window.CONCEPTS||[], EXAMS = window.EXAMS||[];
+const CFG = Object.assign({GAS_URL:""}, window.APP_CONFIG||{});
+const EXAMS = window.EXAMS||[];
 const $app = document.getElementById('app');
+const $ = s => document.querySelector(s);
 const store = {
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -140,8 +159,8 @@ function toast(msg,ms=2600){const t=document.createElement('div');t.className='t
 function fmt(sec){sec=Math.max(0,Math.round(sec));const m=Math.floor(sec/60),s=sec%60;return `${m}:${String(s).padStart(2,'0')}`}
 function stopTimer(){if(TIMER){clearInterval(TIMER);TIMER=null}}
 
-/* ───────────── 채점 ───────────── */
-function norm(s){return String(s).toLowerCase().replace(/[\s·‧∙•\-–—_,.()（）\[\]{}「」『』'"“”‘’:;!?\/~]/g,'')}
+/* ───────────── 서술형: 키워드 채점 ───────────── */
+function norm(s){return String(s).toLowerCase().replace(/[\s·‧∙⋅•\-–—_,.()（）\[\]{}「」『』'"“”‘’:;!?\/~→⇒>]/g,'')}
 function matchGroup(raw, n, group){
   for(const w of group){
     if(w.startsWith('re:')){ try{ if(new RegExp(w.slice(3),'i').test(raw)) return true }catch(e){} }
@@ -150,7 +169,7 @@ function matchGroup(raw, n, group){
   return false;
 }
 function showWord(group){const w=group.find(x=>!x.startsWith('re:'));return w||'정답 형식(순서·수치)'}
-function gradeParts(text, parts){
+function gradeEssay(text, parts){
   const n = norm(text); let score=0, max=0; const detail=[];
   for(const p of parts){
     const hits=[], miss=[];
@@ -162,9 +181,36 @@ function gradeParts(text, parts){
   return {score:Math.round(score*10)/10,max,rate:max?Math.round(100*score/max):0,detail};
 }
 
+/* ───────────── 단답형: 정확한 명칭 채점 ───────────── */
+// 띄어쓰기·문장부호만 무시하고, 정답 명칭과 완전히 같을 때만 정답
+const CIRCLE={'㉠':'ㄱ','㉡':'ㄴ','㉢':'ㄷ','㉣':'ㄹ','㉤':'ㅁ'};
+function normShort(s,mode){
+  s=String(s).trim();
+  if(mode==='order') return s.replace(/[^가나다라마바]/g,'');
+  if(mode==='pair') return norm(s.replace(/[㉠-㉤]/g,c=>CIRCLE[c]).replace(/\(\s*([가나다라])\s*\)/g,(m,c)=>({'가':'ㄱ','나':'ㄴ','다':'ㄷ','라':'ㄹ'})[c]));
+  s=s.replace(/^(㉠|㉡|㉢|㉣|㉤|\(\s*[가나다라마]\s*\)|[ㄱㄴㄷㄹ]\s*[:.)])\s*[:.]?\s*/,''); // 앞에 붙인 기호 제거
+  s=s.replace(/[.。]+$/,'');
+  return norm(s);
+}
+function gradeShort(answers, blanks, unordered){
+  const detail=[]; let score=0, max=0; const used=new Set();
+  blanks.forEach((b,i)=>{
+    const a=answers[i]||''; const na=normShort(a,b.mode);
+    const acc=b.accept.map(x=>normShort(x,b.mode));
+    let ok=false, k=-1;
+    if(na){ k=acc.indexOf(na); ok=k>=0; }
+    if(ok&&unordered){ // 같은 정답을 두 칸에 반복해 쓰는 경우 방지(기호 기준)
+      const key=na.charAt(0); if(used.has(key)) ok=false; else used.add(key);
+    }
+    const pts=b.pts; if(ok) score+=pts; max+=pts;
+    detail.push({label:b.label,pts:Math.round(pts*10)/10,score:ok?Math.round(pts*10)/10:0,ok,answer:a,expect:b.show?b.show:b.mode==='order'?b.accept[0].split('').map(c=>`(${c})`).join(' → '):b.accept[0]});
+  });
+  return {score:Math.round(score*10)/10,max:Math.round(max*10)/10,rate:max?Math.round(100*score/max):0,detail};
+}
+
 /* ───────────── 기록 전송 ───────────── */
 function queue(){return store.get('mt_queue',[])}
-async function sendRecord(rec){
+function sendRecord(rec){
   const all = store.get('mt_hist_'+USER.sid,[]); all.push(rec); store.set('mt_hist_'+USER.sid,all);
   if(!CFG.GAS_URL) return;
   const q=queue(); q.push(rec); store.set('mt_queue',q); flushQueue();
@@ -182,7 +228,7 @@ async function flushQueue(){
 window.addEventListener('online',flushQueue);
 
 /* ───────────── 라우팅 ───────────── */
-const TABS=[['home','홈'],['concept','개념학습'],['exam','기출문제'],['records','내 기록']];
+const TABS=[['home','홈'],['notes','내용 정리'],['quiz','개념 퀴즈'],['exam','기출문제'],['records','내 기록']];
 function renderTabs(active){
   const t=document.getElementById('tabs');
   if(!USER){t.innerHTML='';return}
@@ -194,8 +240,8 @@ function toggleTheme(){const r=document.documentElement;const cur=r.getAttribute
 function go(view,arg){
   stopTimer(); window.scrollTo(0,0);
   if(!USER) view='login';
-  renderTabs(view.startsWith('concept')?'concept':view.startsWith('exam')?'exam':view);
-  ({login:vLogin,home:vHome,concept:vConceptSetup,exam:vExamSetup,records:vRecords})[view](arg);
+  renderTabs(view);
+  ({login:vLogin,home:vHome,notes:vNotes,quiz:vQuizSetup,exam:vExamSetup,records:vRecords})[view](arg);
 }
 
 /* ───────────── 로그인 ───────────── */
@@ -212,11 +258,11 @@ function vLogin(){
     </form>
     ${CFG.GAS_URL?'':'<div class="note">현재 구글 시트 주소가 설정되지 않아 기록은 이 브라우저에만 저장됩니다. (config.js의 GAS_URL)</div>'}
   </div>`;
-  document.getElementById('sid').focus();
+  $('#sid').focus();
 }
 function doLogin(e){
   e.preventDefault();
-  const sid=document.getElementById('sid').value.trim(), nm=document.getElementById('nm').value.trim();
+  const sid=$('#sid').value.trim(), nm=$('#nm').value.trim();
   if(!sid||!nm){toast('학번과 이름을 모두 입력하세요.');return}
   USER={sid,name:nm}; store.set('mt_user',USER); go('home');
 }
@@ -224,135 +270,54 @@ function logout(){if(!confirm('다른 학번으로 바꿀까요?'))return;USER=n
 
 /* ───────────── 홈 ───────────── */
 function vHome(){
-  const hist=store.get('mt_hist_'+USER.sid,[]);
-  const cDone=new Set(hist.filter(h=>h.mode==='개념학습').map(h=>h.qid)).size;
-  const eDone=new Set(hist.filter(h=>h.mode==='기출문제').map(h=>h.qid)).size;
-  const review=reviewList().length;
+  const best=bestScores();
+  const done=EXAMS.filter(e=>e.id in best);
+  const avg=done.length?Math.round(done.reduce((a,e)=>a+best[e.id],0)/done.length):null;
+  const nShort=EXAMS.filter(e=>e.kind==='short').length;
   $app.innerHTML=`
-  <div class="row"><div><h1>${esc(USER.name)} 님, 오늘도 한 문항씩.</h1>
-    <p class="lead">학번 ${esc(USER.sid)} · <a href="#" onclick="logout();return false">학번 바꾸기</a></p></div></div>
+  <h1>${esc(USER.name)} 님, 오늘도 한 문항씩.</h1>
+  <p class="lead">학번 ${esc(USER.sid)} · <a href="#" onclick="logout();return false">학번 바꾸기</a></p>
   <div class="grid g3">
-    <div class="card"><div class="muted small">개념학습 푼 문항</div><div class="stat">${cDone}<span class="muted small"> / ${CONCEPTS.length}</span></div><div class="bar"><i style="width:${100*cDone/CONCEPTS.length}%"></i></div></div>
-    <div class="card"><div class="muted small">기출문제 푼 문항</div><div class="stat">${eDone}<span class="muted small"> / ${EXAMS.length}</span></div><div class="bar"><i style="width:${100*eDone/EXAMS.length}%"></i></div></div>
-    <div class="card"><div class="muted small">복습할 개념 (${CFG.PASS_RATE}% 미만)</div><div class="stat">${review}</div>${review?`<button class="btn sm" onclick="startConcept(reviewList(),'복습')">복습 시작</button>`:'<span class="muted small">아직 없어요</span>'}</div>
+    <div class="card"><div class="muted small">푼 기출 문항</div><div class="stat">${done.length}<span class="muted small"> / ${EXAMS.length}</span></div><div class="bar"><i style="width:${100*done.length/EXAMS.length}%"></i></div></div>
+    <div class="card"><div class="muted small">문항별 최고 득점률 평균</div><div class="stat">${avg===null?'–':avg+'%'}</div></div>
+    <div class="card"><div class="muted small">푼 개념 퀴즈</div><div class="stat">${Object.keys(bestScores('개념퀴즈')).length}<span class="muted small"> / ${allConceptQ().length}</span></div><div class="bar"><i style="width:${100*Object.keys(bestScores('개념퀴즈')).length/Math.max(1,allConceptQ().length)}%"></i></div></div>
   </div>
   <h2>학습 메뉴</h2>
   <div class="grid g2">
-    <div class="card home-tile" onclick="go('concept')"><span class="pill">개념학습</span><div class="t">서답형 개념 퀴즈 ${CONCEPTS.length}문항</div>
-      <div class="d">『수학교육신론』과 『수학교육과정과 교재연구』 목차별로 개념을 설명하거나, 설명을 읽고 용어를 쓰는 문항입니다. 필수 키워드로 채점합니다.</div></div>
-    <div class="card home-tile" onclick="go('exam')"><span class="pill">기출문제</span><div class="t">2016~2026 수학교육론 ${EXAMS.length}문항</div>
-      <div class="d">전공 A·B의 수학교육론(매년 24점) 문항을 이론별·연도별로 모았습니다. 제한 시간을 두고 풀고 키워드로 채점합니다.</div></div>
+    <div class="card home-tile" onclick="go('notes')"><span class="pill">내용 정리</span><div class="t">빵꾸노트 목차별 핵심 정리 ${UNITS.length}단원</div>
+      <div class="d">'신론' 20단원과 '교재연구' & '성취기준' 13단원을 목차 순서대로 정리했습니다.</div></div>
+    <div class="card home-tile" onclick="go('quiz')"><span class="pill">개념 퀴즈</span><div class="t">개념 설명하기 · 개념 이름 쓰기 ${allConceptQ().length}문항</div>
+      <div class="d">단원을 골라 개념을 설명하거나, 설명을 읽고 개념의 이름을 정확하게 써 봅니다.</div></div>
+    <div class="card home-tile" onclick="go('exam')"><span class="pill">기출문제</span><div class="t">2016~2026 수학교육론 기출 ${EXAMS.length}문항</div>
+      <div class="d">전공 A·B의 수학교육론(매년 24점) 문항을 이론별·연도별로 모았습니다. 제한 시간을 두고 풉니다.</div></div>
+    <div class="card home-tile" onclick="go('records')"><span class="pill">내 기록</span><div class="t">이론별 득점률과 제출 내역</div>
+      <div class="d">어떤 이론에서 점수가 낮은지 확인하고 다시 풀어 보세요.</div></div>
   </div>
-  <div class="note">키워드 채점은 답안에 핵심 용어가 들어 있는지만 확인하는 참고용 채점입니다. 논리 전개와 정확성은 모범답안과 비교하여 스스로 점검하세요.</div>`;
+  <div class="note"><b>채점 방식</b> — 단답형(2점)은 명칭을 정확하게 썼을 때만 정답입니다(띄어쓰기만 무시). 서술형은 필수 키워드가 들어 있는지로 채점하는 참고용 채점이므로, 논리 전개는 모범답안과 비교해 스스로 점검하세요.</div>`;
 }
+function bestScores(mode='기출문제'){const b={};for(const h of store.get('mt_hist_'+USER.sid,[])){if(h.mode!==mode)continue;b[h.qid]=Math.max(b[h.qid]??-1,h.rate)}return b}
 
-/* ───────────── 개념학습 ───────────── */
-function books(){return [...new Set(CONCEPTS.map(c=>c.book))]}
-function vConceptSetup(){
-  const bs=books();
-  const st=store.get('mt_cset',{book:bs[0],ch:'',sec:'',type:'전체',order:'순서대로'});
-  $app.innerHTML=`<h1>개념학습</h1><p class="lead">교재와 단원을 고른 뒤 시작하세요. 답안을 제출하면 필수 키워드 포함 여부로 채점하고 모범답안을 보여 줍니다.</p>
-  <div class="card">
-    <div class="grid g2">
-      <div><label class="f">교재</label><select id="cb">${bs.map(b=>`<option ${b===st.book?'selected':''}>${esc(b)}</option>`).join('')}</select></div>
-      <div><label class="f">장(Chapter)</label><select id="cc"></select></div>
-      <div><label class="f">소단원</label><select id="cs"></select></div>
-      <div><label class="f">문항 유형</label><div class="seg" id="ct">${['전체','설명','용어'].map(t=>`<button type="button" class="${t===st.type?'on':''}" data-v="${t}">${t==='설명'?'설명하기':t==='용어'?'용어 쓰기':'전체'}</button>`).join('')}</div>
-        <label class="f">순서</label><div class="seg" id="co">${['순서대로','무작위'].map(t=>`<button type="button" class="${t===st.order?'on':''}" data-v="${t}">${t}</button>`).join('')}</div></div>
-    </div>
-    <div class="row" style="margin-top:18px"><span class="muted" id="cn"></span><span class="spacer"></span><button class="btn primary" id="cgo">시작하기</button></div>
-  </div>
-  <h2>목차별 진행 현황</h2><div id="cprog"></div>`;
-  const cb=$('#cb'),cc=$('#cc'),cs=$('#cs');
-  function fillCh(){const chs=[...new Set(CONCEPTS.filter(c=>c.book===cb.value).map(c=>c.ch))];cc.innerHTML=`<option value="">전체</option>`+chs.map(c=>`<option ${c===st.ch?'selected':''}>${esc(c)}</option>`).join('');fillSec()}
-  function fillSec(){const ss=[...new Set(CONCEPTS.filter(c=>c.book===cb.value&&(!cc.value||c.ch===cc.value)).map(c=>c.sec))];cs.innerHTML=`<option value="">전체</option>`+ss.map(s=>`<option ${s===st.sec?'selected':''}>${esc(s)}</option>`).join('');count()}
-  function sel(){const ty=$('#ct .on').dataset.v;return CONCEPTS.filter(c=>c.book===cb.value&&(!cc.value||c.ch===cc.value)&&(!cs.value||c.sec===cs.value)&&(ty==='전체'||c.type===ty))}
-  function count(){$('#cn').textContent=`${sel().length}문항`;renderProg()}
-  cb.onchange=()=>{st.ch='';st.sec='';fillCh()};cc.onchange=()=>{st.sec='';fillSec()};cs.onchange=count;
-  document.querySelectorAll('.seg').forEach(g=>g.onclick=e=>{if(e.target.dataset.v){g.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===e.target));count()}});
-  $('#cgo').onclick=()=>{let list=sel();if(!list.length){toast('해당 문항이 없습니다.');return}
-    const s={book:cb.value,ch:cc.value,sec:cs.value,type:$('#ct .on').dataset.v,order:$('#co .on').dataset.v};store.set('mt_cset',s);
-    if(s.order==='무작위')list=shuffle(list.slice());startConcept(list,s.sec||s.ch||s.book)};
-  function renderProg(){
-    const best=bestScores('개념학습');const secs=[...new Set(CONCEPTS.filter(c=>c.book===cb.value).map(c=>c.ch+'||'+c.sec))];
-    $('#cprog').innerHTML=`<div class="card tablewrap"><table class="t"><thead><tr><th>소단원</th><th>문항</th><th>푼 문항</th><th>평균</th></tr></thead><tbody>${secs.map(k=>{const [ch,sc]=k.split('||');const items=CONCEPTS.filter(c=>c.book===cb.value&&c.sec===sc);const done=items.filter(c=>c.id in best);const avg=done.length?Math.round(done.reduce((a,c)=>a+best[c.id],0)/done.length):null;
-      return `<tr><td><a href="#" onclick="startConcept(CONCEPTS.filter(c=>c.book===${JSON.stringify(cb.value).replace(/"/g,'&quot;')}&&c.sec===${JSON.stringify(sc).replace(/"/g,'&quot;')}),${JSON.stringify(sc).replace(/"/g,'&quot;')});return false">${esc(sc)}</a></td><td>${items.length}</td><td>${done.length}</td><td>${avg===null?'–':avg+'%'}</td></tr>`}).join('')}</tbody></table></div>`;
-  }
-  fillCh();
-}
-function $(s){return document.querySelector(s)}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function bestScores(mode){const b={};for(const h of store.get('mt_hist_'+USER.sid,[])){if(h.mode!==mode)continue;b[h.qid]=Math.max(b[h.qid]??-1,h.rate)}return b}
-function reviewList(){if(!USER)return[];const last={};for(const h of store.get('mt_hist_'+USER.sid,[]))if(h.mode==='개념학습')last[h.qid]=h.rate;return CONCEPTS.filter(c=>c.id in last&&last[c.id]<CFG.PASS_RATE)}
-
-let CQ=null;
-function startConcept(list,title){CQ={list,i:0,title,scores:[]};renderTabs('concept');showConcept()}
-function showConcept(){
-  stopTimer(); window.scrollTo(0,0);
-  const c=CQ.list[CQ.i]; CQ.t0=Date.now();
-  const isTerm=c.type==='용어';
-  $app.innerHTML=`<div class="row"><span class="pill">${isTerm?'용어 쓰기':'설명하기'}</span><span class="muted small">${esc(c.book)} · ${esc(c.sec)}</span><span class="spacer"></span><span class="muted small">${CQ.i+1} / ${CQ.list.length}</span><span class="timer" id="tm">0:00</span></div>
-  <div class="bar" style="margin:10px 0 4px"><i style="width:${100*CQ.i/CQ.list.length}%"></i></div>
-  <div class="card" style="margin-top:12px">
-    <div class="qtext">${esc(c.q)}</div>
-    ${isTerm?`<input type="text" id="ans" placeholder="용어를 쓰세요" autocomplete="off">`:`<textarea id="ans" placeholder="핵심 용어를 포함하여 서술하세요."></textarea>`}
-    <div class="row" style="margin-top:12px"><button class="btn ghost" onclick="submitConcept(true)">모르겠어요 (답 보기)</button><span class="spacer"></span><span class="muted small"><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span>로도 제출</span><button class="btn primary" onclick="submitConcept(false)">제출</button></div>
-    <div id="res"></div>
-  </div>
-  <div class="row" style="margin-top:14px"><button class="btn sm ghost" onclick="go('concept')">목록으로</button></div>`;
-  const a=$('#ans');a.focus();
-  a.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();submitConcept(false)}else if(isTerm&&e.key==='Enter'){e.preventDefault();submitConcept(false)}});
-  TIMER=setInterval(()=>{const el=$('#tm');if(el)el.textContent=fmt((Date.now()-CQ.t0)/1000)},500);
-}
-function submitConcept(giveUp){
-  const c=CQ.list[CQ.i]; if(CQ.done===CQ.i) return;
-  const text=giveUp?'':$('#ans').value;
-  if(!giveUp&&!text.trim()){toast('답안을 입력하세요.');return}
-  stopTimer(); CQ.done=CQ.i;
-  const secs=Math.round((Date.now()-CQ.t0)/1000);
-  const g=gradeParts(text,[{label:'',pts:10,kw:c.kw}]);
-  const d=g.detail[0], rate=g.rate, cls=rate>=80?'good':rate>=CFG.PASS_RATE?'warn':'bad';
-  CQ.scores.push(rate);
-  $('#ans').readOnly=true; document.querySelectorAll('.card .btn').forEach(b=>b.disabled=true);
-  const isTerm=c.type==='용어';
-  $('#res').innerHTML=`<div class="result ${cls}">
-    <div class="row"><b style="font-size:18px">${giveUp?'답 보기':rate+'%'}</b><span class="muted small">${giveUp?'':(rate>=80?'핵심 키워드를 잘 갖추었습니다.':rate>=CFG.PASS_RATE?'대부분 포함했지만 빠진 요소가 있습니다.':'핵심 요소가 부족합니다. 복습 목록에 담았어요.')}</span></div>
-    ${isTerm?'':`<div style="margin-top:8px">${d.hits.map(w=>`<span class="chip good">✓ ${esc(w)}</span>`).join('')}${d.miss.map(w=>`<span class="chip bad">✗ ${esc(w)}</span>`).join('')}</div>`}
-    <div style="margin-top:10px"><b>${isTerm?'정답':'모범답안'}</b><div class="model">${esc(c.a)}</div></div>
-    ${isTerm&&c.kw[0].length>1?`<div class="small muted" style="margin-top:6px">인정 답안: ${c.kw[0].filter(w=>!w.startsWith('re:')).map(esc).join(', ')}</div>`:''}
-  </div>
-  <div class="row" style="margin-top:14px"><span class="spacer"></span>${CQ.i+1<CQ.list.length?`<button class="btn primary" id="nx">다음 문항 →</button>`:`<button class="btn primary" id="nx">결과 보기</button>`}</div>`;
-  const nx=$('#nx');nx.focus();nx.onclick=()=>{CQ.i++;CQ.done=null;CQ.i<CQ.list.length?showConcept():conceptSummary()};
-  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'개념학습',qid:c.id,group:c.book,unit:c.sec,question:c.q,answer:giveUp?'(모르겠어요)':text,
-    score:giveUp?0:rate,max:100,rate:giveUp?0:rate,hits:d.hits.join(', '),miss:d.miss.join(', '),secs,limit:'',over:''});
-}
-function conceptSummary(){
-  const avg=CQ.scores.length?Math.round(CQ.scores.reduce((a,b)=>a+b,0)/CQ.scores.length):0;
-  const weak=CQ.list.filter((c,i)=>CQ.scores[i]<CFG.PASS_RATE);
-  $app.innerHTML=`<h1>${esc(CQ.title)} 완료</h1><div class="grid g3"><div class="card"><div class="muted small">푼 문항</div><div class="stat">${CQ.scores.length}</div></div><div class="card"><div class="muted small">평균 득점률</div><div class="stat">${avg}%</div></div><div class="card"><div class="muted small">${CFG.PASS_RATE}% 미만</div><div class="stat">${weak.length}</div></div></div>
-  <div class="row" style="margin-top:18px">${weak.length?`<button class="btn primary" id="rw">부족한 문항 다시 풀기</button>`:''}<button class="btn" onclick="go('concept')">다른 단원 고르기</button></div>`;
-  if(weak.length)$('#rw').onclick=()=>startConcept(weak,CQ.title+' · 다시 풀기');
-}
-
-/* ───────────── 기출문제 ───────────── */
+/* ───────────── 기출문제 목록 ───────────── */
 function allTypes(){const m={};EXAMS.forEach(e=>e.types.forEach(t=>m[t]=(m[t]||0)+1));return Object.entries(m).sort((a,b)=>b[1]-a[1])}
 function vExamSetup(){
   const st=store.get('mt_eset',{by:'이론'});
-  $app.innerHTML=`<h1>기출문제</h1><p class="lead">2016~2026학년도 중등 1차 전공 A·B의 수학교육론 문항(매년 24점)입니다. 문항을 누르면 제한 시간이 시작됩니다. 묶음 전체를 이어서 푸는 실전 세트도 할 수 있어요.</p>
+  $app.innerHTML=`<h1>기출문제</h1><p class="lead">2016~2026학년도 중등 1차 전공 A·B의 수학교육론 문항(매년 24점)입니다. 문항을 누르면 제한 시간이 시작됩니다. 묶음 전체를 이어서 푸는 세트 풀이도 할 수 있어요.</p>
   <div class="row"><div class="seg" id="eby">${['이론','연도'].map(t=>`<button type="button" class="${t===st.by?'on':''}" data-v="${t}">${t}별 보기</button>`).join('')}</div></div>
   <div id="elist" style="margin-top:16px"></div>
   <div class="note">문항 출처: 한국교육과정평가원 중등학교교사 임용후보자 선정경쟁시험 기출문제. 제한 시간은 시험 시간(90분/40점)을 배점에 비례해 정한 것입니다(2점 4분, 4점 9분, 10점 논술형 25분).</div>`;
   $('#eby').onclick=e=>{if(!e.target.dataset.v)return;st.by=e.target.dataset.v;store.set('mt_eset',st);$('#eby').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.by));draw()};
   function draw(){
-    const best=bestScores('기출문제');
+    const best=bestScores();
     const groups=st.by==='이론'?allTypes().map(([t])=>[t,EXAMS.filter(e=>e.types.includes(t))]):[...new Set(EXAMS.map(e=>e.year))].sort((a,b)=>b-a).map(y=>[y+'학년도',EXAMS.filter(e=>e.year===y)]);
     $('#elist').innerHTML=groups.map(([name,list],gi)=>{const tot=list.reduce((a,e)=>a+e.time,0);const pts=list.reduce((a,e)=>a+e.pts,0);
       return `<details class="card" style="margin-bottom:10px" ${gi===0?'open':''}><summary><b style="color:var(--ink)">${esc(name)}</b> <span class="muted small">· ${list.length}문항 · ${pts}점 · ${tot}분</span></summary>
       <div class="row" style="margin:12px 0"><button class="btn sm primary" onclick='startExam(${JSON.stringify(list.map(e=>e.id))},${JSON.stringify(name)},true)'>세트로 풀기 (총 ${tot}분)</button></div>
-      <div class="list">${list.map(e=>`<div class="item" onclick='startExam(["${e.id}"],${JSON.stringify(name)},false)'><div class="meta"><b>${e.year}학년도 ${e.form} ${e.no}번 <span class="muted small">[${e.pts}점 · ${e.time}분]</span></b><span class="muted small">${e.types.map(esc).join(' · ')}</span></div>${e.id in best?`<span class="chip ${best[e.id]>=70?'good':best[e.id]>=40?'warn':'bad'}">최고 ${best[e.id]}%</span>`:'<span class="chip">미응시</span>'}</div>`).join('')}</div></details>`}).join('');
+      <div class="list">${list.map(e=>`<div class="item" onclick='startExam(["${e.id}"],${JSON.stringify(name)},false)'><div class="meta"><b>${e.year}학년도 ${e.form} ${e.no}번 <span class="muted small">[${e.kind==='short'?'단답형':'서술형'} · ${e.pts}점 · ${e.time}분]</span></b><span class="muted small">${e.types.map(esc).join(' · ')}</span></div>${e.id in best?`<span class="chip ${best[e.id]>=70?'good':best[e.id]>=40?'warn':'bad'}">최고 ${best[e.id]}%</span>`:'<span class="chip">미응시</span>'}</div>`).join('')}</div></details>`}).join('');
   }
   draw();
 }
+
+/* ───────────── 기출 풀이 ───────────── */
 let EQ=null;
 function startExam(ids,title,asSet){
   const list=ids.map(id=>EXAMS.find(e=>e.id===id));
@@ -361,18 +326,26 @@ function startExam(ids,title,asSet){
 }
 function showExam(){
   stopTimer(); window.scrollTo(0,0);
-  const e=EQ.list[EQ.i]; EQ.t0=Date.now(); EQ.submitted=false;
+  const e=EQ.list[EQ.i]; EQ.t0=Date.now(); EQ.submitted=false; EQ.warned=false;
   const limit=EQ.asSet?EQ.setLimit:e.time*60, start=EQ.asSet?EQ.setStart:EQ.t0;
-  $app.innerHTML=`<div class="row"><span class="pill">${e.year}학년도 ${e.form} ${e.no}번</span><span class="muted small">${e.pts}점 · ${e.types.map(esc).join(' · ')}</span><span class="spacer"></span>${EQ.list.length>1?`<span class="muted small">${EQ.i+1} / ${EQ.list.length}</span>`:''}<span class="muted small">${EQ.asSet?'세트 남은 시간':'남은 시간'}</span><span class="timer" id="tm"></span></div>
+  const isShort=e.kind==='short';
+  const answerUI=isShort
+    ? `<label class="f" style="margin-top:0">답안 작성 <span class="small">(단답형: 정확한 명칭으로 쓰세요)</span></label>
+       ${e.blanks.map((b,i)=>`<div class="blank"><label for="b${i}">${esc(b.label)}</label><input type="text" id="b${i}" autocomplete="off" placeholder="${b.mode==='order'?'예: (가) → (나) → …':b.mode==='pair'?'예: ㉠ ○○주의':''}"></div>`).join('')}
+       <div class="row" style="margin-top:12px"><span class="spacer"></span><button class="btn primary" id="sb">제출하고 채점</button></div>`
+    : `<label class="f" for="ans" style="margin-top:0">답안 작성</label>
+       <textarea id="ans" style="min-height:${e.pts>=10?420:260}px" placeholder="㉠, ㉡ 등 문항이 요구하는 순서대로 쓰세요."></textarea>
+       <div class="row" style="margin-top:12px"><span class="muted small" id="cc">0자</span><span class="spacer"></span><button class="btn primary" id="sb">제출하고 채점</button></div>`;
+  $app.innerHTML=`<div class="row"><span class="pill">${e.year}학년도 ${e.form} ${e.no}번</span><span class="muted small">${isShort?'단답형':'서술형'} · ${e.pts}점 · ${e.types.map(esc).join(' · ')}</span><span class="spacer"></span>${EQ.list.length>1?`<span class="muted small">${EQ.i+1} / ${EQ.list.length}</span>`:''}<span class="muted small">${EQ.asSet?'세트 남은 시간':'남은 시간'}</span><span class="timer" id="tm"></span></div>
   <div class="exam-layout" style="margin-top:14px">
     <div class="left"><img class="qimg" src="${e.img}" alt="${e.year}학년도 ${e.form} ${e.no}번 문항"></div>
-    <div class="card"><label class="f" for="ans" style="margin-top:0">답안 작성</label>
-      <textarea id="ans" style="min-height:${e.pts>=10?420:260}px" placeholder="㉠, ㉡ 등 문항이 요구하는 순서대로 쓰세요."></textarea>
-      <div class="row" style="margin-top:12px"><span class="muted small" id="cc">0자</span><span class="spacer"></span><button class="btn primary" id="sb">제출하고 채점</button></div>
-      <div id="res"></div></div>
+    <div class="card">${answerUI}<div id="res"></div></div>
   </div>
   <div class="row" style="margin-top:14px"><button class="btn sm ghost" onclick="if(confirm('풀이를 그만둘까요? 제출하지 않은 답안은 기록되지 않습니다.'))go('exam')">목록으로</button></div>`;
-  const a=$('#ans');a.focus();a.oninput=()=>$('#cc').textContent=a.value.length+'자';
+  if(isShort){
+    const ins=[...document.querySelectorAll('.blank input')]; ins[0].focus();
+    ins.forEach((inp,i)=>inp.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();ins[i+1]?ins[i+1].focus():submitExam()}}));
+  } else { const a=$('#ans');a.focus();a.oninput=()=>$('#cc').textContent=a.value.length+'자'; }
   $('#sb').onclick=submitExam;
   const tick=()=>{const left=limit-(Date.now()-start)/1000;const el=$('#tm');if(!el)return;
     el.textContent=left>=0?fmt(left):'+'+fmt(-left);el.className='timer'+(left<0?' over':left<60?' low':'');
@@ -381,27 +354,45 @@ function showExam(){
 }
 function submitExam(){
   if(EQ.submitted)return;
-  const e=EQ.list[EQ.i], text=$('#ans').value;
-  if(!text.trim()&&!confirm('답안이 비어 있습니다. 이대로 제출할까요?'))return;
-  EQ.submitted=true; stopTimer();
+  const e=EQ.list[EQ.i], isShort=e.kind==='short';
+  let text, g;
+  if(isShort){
+    const answers=e.blanks.map((b,i)=>$('#b'+i).value);
+    if(answers.every(a=>!a.trim())&&!confirm('답안이 비어 있습니다. 이대로 제출할까요?'))return;
+    g=gradeShort(answers,e.blanks,e.unordered);
+    text=e.blanks.map((b,i)=>`${b.label}: ${answers[i]}`).join(' / ');
+    document.querySelectorAll('.blank input').forEach(x=>x.readOnly=true);
+  } else {
+    text=$('#ans').value;
+    if(!text.trim()&&!confirm('답안이 비어 있습니다. 이대로 제출할까요?'))return;
+    g=gradeEssay(text,e.parts);
+    $('#ans').readOnly=true;
+  }
+  EQ.submitted=true; stopTimer(); $('#sb').disabled=true;
   const secs=Math.round((Date.now()-EQ.t0)/1000);
   const over=EQ.asSet?(Date.now()-EQ.setStart)/1000>EQ.setLimit:secs>e.time*60;
-  const g=gradeParts(text,e.parts); EQ.results.push({e,g,secs});
-  $('#ans').readOnly=true;$('#sb').disabled=true;
+  EQ.results.push({e,g,secs});
   const cls=g.rate>=70?'good':g.rate>=40?'warn':'bad';
+  const table=isShort
+    ? `<table class="t"><thead><tr><th>빈칸</th><th>점수</th><th>내 답 / 정답</th></tr></thead><tbody>
+       ${g.detail.map(d=>`<tr><td>${esc(d.label)}</td><td>${d.score}/${d.pts}</td><td>${d.ok?`<span class="chip good">✓ ${esc(d.answer)}</span>`:`<span class="chip bad">✗ ${esc(d.answer||'(빈칸)')}</span> <span class="small">정답: <b>${esc(d.expect)}</b></span>`}</td></tr>`).join('')}</tbody></table>`
+    : `<table class="t"><thead><tr><th>채점 요소</th><th>점수</th><th>키워드</th></tr></thead><tbody>
+       ${g.detail.map(d=>`<tr><td>${esc(d.label)}</td><td>${d.score}/${d.pts}</td><td>${d.hits.map(w=>`<span class="chip good">✓ ${esc(w)}</span>`).join('')}${d.miss.map(w=>`<span class="chip bad">✗ ${esc(w)}</span>`).join('')}</td></tr>`).join('')}</tbody></table>`;
   $('#res').innerHTML=`<div class="result ${cls}">
     <div class="row"><b style="font-size:20px">${g.score} / ${g.max}점</b><span class="muted small">득점률 ${g.rate}% · 소요 ${fmt(secs)}${over?' · <span style="color:var(--bad)">시간 초과</span>':''}</span></div>
-    <div class="tablewrap" style="margin-top:8px"><table class="t"><thead><tr><th>채점 요소</th><th>점수</th><th>키워드</th></tr></thead><tbody>
-    ${g.detail.map(d=>`<tr><td>${esc(d.label)}</td><td>${d.score}/${d.pts}</td><td>${d.hits.map(w=>`<span class="chip good">✓ ${esc(w)}</span>`).join('')}${d.miss.map(w=>`<span class="chip bad">✗ ${esc(w)}</span>`).join('')}</td></tr>`).join('')}
-    </tbody></table></div>
+    <div class="tablewrap" style="margin-top:8px">${table}</div>
     <div style="margin-top:10px"><b>모범답안</b><div class="model">${esc(e.model)}</div></div>
     <div style="margin-top:10px"><b>해설</b><div class="model">${esc(e.explain)}</div></div>
-    <div class="note">키워드는 모범답안의 핵심 용어와 동의어로 설정되어 있습니다. 표현이 달라도 의미가 맞으면 스스로 인정하고, 키워드가 있어도 논리가 틀리면 감점하여 점검하세요.</div>
+    <div class="note">${isShort?'단답형은 띄어쓰기·문장부호만 무시하고, 정확한 명칭일 때만 정답으로 인정합니다.':'키워드는 모범답안의 핵심 용어와 동의어로 설정되어 있습니다. 표현이 달라도 의미가 맞으면 스스로 인정하고, 키워드가 있어도 논리가 틀리면 감점하여 점검하세요.'}</div>
   </div>
   <div class="row" style="margin-top:14px"><span class="spacer"></span><button class="btn primary" id="nx">${EQ.i+1<EQ.list.length?'다음 문항 →':'결과 보기'}</button></div>`;
   $('#nx').onclick=()=>{EQ.i++;EQ.i<EQ.list.length?showExam():examSummary()};
-  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'기출문제',qid:e.id,group:`${e.year}학년도 ${e.form} ${e.no}번`,unit:e.types.join(', '),question:`${e.year}학년도 ${e.form} ${e.no}번 (${e.pts}점)`,answer:text,
-    score:g.score,max:g.max,rate:g.rate,hits:g.detail.map(d=>d.hits.join('/')).filter(Boolean).join(', '),miss:g.detail.map(d=>d.miss.join('/')).filter(Boolean).join(', '),secs,limit:e.time*60,over:over?'Y':''});
+  $('#nx').focus();
+  const hits=isShort?g.detail.filter(d=>d.ok).map(d=>d.label).join(', '):g.detail.map(d=>d.hits.join('/')).filter(Boolean).join(', ');
+  const miss=isShort?g.detail.filter(d=>!d.ok).map(d=>`${d.label}(정답: ${d.expect})`).join(', '):g.detail.map(d=>d.miss.join('/')).filter(Boolean).join(', ');
+  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'기출문제',qid:e.id,group:`${e.year}학년도 ${e.form} ${e.no}번`,unit:e.types.join(', '),
+    question:`${e.year}학년도 ${e.form} ${e.no}번 (${isShort?'단답형':'서술형'} ${e.pts}점)`,answer:text,
+    score:g.score,max:g.max,rate:g.rate,hits,miss,secs,limit:e.time*60,over:over?'Y':''});
 }
 function examSummary(){
   const s=EQ.results.reduce((a,r)=>a+r.g.score,0), m=EQ.results.reduce((a,r)=>a+r.g.max,0), t=EQ.results.reduce((a,r)=>a+r.secs,0);
@@ -417,14 +408,156 @@ function vRecords(){
   const q=queue().length;
   $app.innerHTML=`<h1>내 기록</h1><p class="lead">${esc(USER.name)} (${esc(USER.sid)}) · 이 기기에서 제출한 ${hist.length}건</p>
   ${CFG.GAS_URL?`<div class="note">구글 시트 전송: ${q?`<b>${q}건 대기 중</b> <button class="btn sm" onclick="flushQueue().then(()=>go('records'))">다시 보내기</button>`:'모두 전송됨'}</div>`:`<div class="note">구글 시트 주소가 설정되지 않아 이 브라우저에만 저장됩니다.</div>`}
-  <h2>이론 유형별 기출 득점률</h2><div id="bytype"></div>
+  <h2>기출문제 · 이론 유형별 득점률</h2><div id="bytype"></div>
+  <h2>개념 퀴즈 · 단원별 득점률</h2><div id="byunit"></div>
   <h2>최근 제출</h2>
   <div class="card tablewrap"><table class="t"><thead><tr><th>시각</th><th>구분</th><th>문항</th><th>득점률</th><th>소요</th></tr></thead><tbody>
-  ${hist.slice(0,200).map(h=>`<tr><td class="small">${new Date(h.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td>${esc(h.mode)}</td><td class="small">${esc(h.mode==='기출문제'?h.group:h.unit)}<div class="muted">${esc(String(h.question).slice(0,60))}${String(h.question).length>60?'…':''}</div></td><td>${h.rate}%</td><td>${fmt(h.secs)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">아직 기록이 없습니다.</td></tr>'}
+  ${hist.slice(0,200).map(h=>`<tr><td class="small">${new Date(h.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td class="small">${esc(h.mode)}</td><td class="small">${esc(h.group)}<div class="muted">${esc(h.mode==='개념퀴즈'?String(h.question).slice(0,50)+(String(h.question).length>50?'…':''):h.unit)}</div></td><td>${h.rate}%</td><td>${fmt(h.secs)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">아직 기록이 없습니다.</td></tr>'}
   </tbody></table></div>`;
-  const best=bestScores('기출문제');
+  const best=bestScores();
   const rows=allTypes().map(([t])=>{const list=EXAMS.filter(e=>e.types.includes(t));const done=list.filter(e=>e.id in best);return [t,list.length,done.length,done.length?Math.round(done.reduce((a,e)=>a+best[e.id],0)/done.length):null]}).filter(r=>r[2]);
   $('#bytype').innerHTML=rows.length?`<div class="card">${rows.map(([t,n,d,a])=>`<div style="margin:6px 0"><div class="row small"><span>${esc(t)}</span><span class="spacer"></span><span class="muted">${d}/${n}문항 · 평균 ${a}%</span></div><div class="bar"><i style="width:${a}%"></i></div></div>`).join('')}</div>`:'<p class="muted">기출문제를 풀면 이론별 득점률이 표시됩니다.</p>';
+  const cb=bestScores('개념퀴즈');
+  const urows=UNITS.filter(u=>!u.pending).map(u=>{const d=u.quiz.filter(q=>q.id in cb);return [u,d.length,d.length?Math.round(d.reduce((a,q)=>a+cb[q.id],0)/d.length):null]}).filter(r=>r[1]);
+  $('#byunit').innerHTML=urows.length?`<div class="card">${urows.map(([u,d,a])=>`<div style="margin:6px 0"><div class="row small"><span>${esc(u.part)} ${esc(unitLabel(u))}</span><span class="spacer"></span><span class="muted">${d}/${u.quiz.length}문항 · 평균 ${a}%</span></div><div class="bar"><i style="width:${a}%"></i></div></div>`).join('')}</div>`:'<p class="muted">개념 퀴즈를 풀면 단원별 득점률이 표시됩니다.</p>';
+}
+
+/* ───────────── 개념학습 공통 ───────────── */
+const UNITS = window.CONCEPT_UNITS||[];
+const PARTS=[['신론',"'신론' 빵꾸노트 목차"],['교재연구',"'교재연구' & '성취기준' 목차"]];
+function unitLabel(u){return `${u.no}. ${u.title}`}
+function md(s){
+  const out=[];let list=null;
+  const inline=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g,'$1<i>$2</i>');
+  for(const raw of s.split('\n')){
+    const l=raw.trim();
+    const im=l.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/);
+    if(im){ if(list){out.push(`<ul>${list.join('')}</ul>`);list=null}
+      out.push(`<figure class="src-img"><img src="${esc(im[2])}" alt="${esc(im[1])}" loading="lazy"></figure>`); continue; }
+    if(/^\*\*[^*]+\*\*$/.test(l)){ if(list){out.push(`<ul>${list.join('')}</ul>`);list=null}
+      out.push(`<h4 class="sub-h">${inline(l)}</h4>`); continue; }
+    if(l.startsWith('- ')){ if(!list){list=[];} list.push(`<li>${inline(l.slice(2))}</li>`); continue; }
+    if(list){out.push(`<ul>${list.join('')}</ul>`);list=null}
+    if(!l) continue;
+    out.push(`<p>${inline(l)}</p>`);
+  }
+  if(list) out.push(`<ul>${list.join('')}</ul>`);
+  return out.join('');
+}
+function unitSelectHTML(id,cur,withAll){
+  return `<select id="${id}">${withAll?`<option value="">전체 단원</option>`:''}${PARTS.map(([p,lab])=>`<optgroup label="${esc(lab)}">${UNITS.filter(u=>u.part===p).map(u=>`<option value="${u.id}" ${u.id===cur?'selected':''} ${u.pending?'disabled':''}>${esc(unitLabel(u))}${u.pending?' (준비 중)':''}</option>`).join('')}</optgroup>`).join('')}</select>`;
+}
+
+/* ───────────── 내용 정리 ───────────── */
+function vNotes(uid){
+  uid=uid||store.get('mt_note_unit',(UNITS.find(u=>!u.pending)||{}).id);
+  const u=UNITS.find(x=>x.id===uid)||UNITS[0]; store.set('mt_note_unit',u.id);
+  const side=PARTS.map(([p,lab])=>`<div class="toc-h">${esc(lab)}</div>${UNITS.filter(x=>x.part===p).map(x=>`<a href="#" class="toc-i ${x.id===u.id?'on':''} ${x.pending?'pend':''}" onclick="vNotes('${x.id}');return false">${esc(unitLabel(x))}${x.pending?' <span class="small">준비 중</span>':''}</a>`).join('')}`).join('');
+  const body=u.pending
+    ? `<div class="note">이 단원은 2022 개정 수학과 교육과정(교육부 고시 제2022-33호 [별책 8]) 원문을 바탕으로 준비 중입니다.</div>`
+    : `${u.sections.map((s,i)=>`<section class="sec"><h3>${i+1}. ${esc(s.title)}</h3>${md(s.body)}</section>`).join('')}
+       ${u.quiz.length?`<div class="row" style="margin-top:18px"><button class="btn primary" onclick="startConcept(UNITS.find(x=>x.id==='${u.id}').quiz.map(q=>({...q,unit:'${u.id}'})),'${esc(unitLabel(u)).replace(/'/g,'')}')">이 단원 퀴즈 풀기 (${u.quiz.length}문항)</button></div>`:''}`;
+  const idx=UNITS.indexOf(u), prev=UNITS[idx-1], next=UNITS[idx+1];
+  $app.innerHTML=`<h1>내용 정리</h1><p class="lead">빵꾸노트 목차를 따라 단원별 핵심 내용을 정리했습니다.</p>
+  <div class="notes-layout">
+    <nav class="toc card">${side}</nav>
+    <div>
+      <div class="mobile-only" style="margin-bottom:12px">${unitSelectHTML('nsel',u.id,false)}</div>
+      <article class="card notes"><div class="muted small">${esc(u.part==='신론'?"'신론'":"'교재연구' & '성취기준'")}</div><h2 style="margin-top:4px">${esc(unitLabel(u))}</h2>${body}</article>
+      <div class="row" style="margin-top:12px">${prev?`<button class="btn sm" onclick="vNotes('${prev.id}')">← ${esc(unitLabel(prev))}</button>`:''}<span class="spacer"></span>${next?`<button class="btn sm" onclick="vNotes('${next.id}')">${esc(unitLabel(next))} →</button>`:''}</div>
+    </div>
+  </div>`;
+  const ns=$('#nsel'); if(ns) ns.onchange=()=>vNotes(ns.value);
+  window.scrollTo(0,0);
+}
+
+/* ───────────── 개념 퀴즈 ───────────── */
+function allConceptQ(){return UNITS.flatMap(u=>u.quiz.map(q=>({...q,unit:u.id})))}
+function vQuizSetup(){
+  const st=store.get('mt_qset',{unit:'',type:'전체',order:'순서대로'});
+  $app.innerHTML=`<h1>개념 퀴즈</h1><p class="lead">개념을 설명하는 문항과, 설명을 읽고 개념의 이름을 쓰는 문항입니다.</p>
+  <div class="card">
+    <div class="grid g2">
+      <div><label class="f">단원</label>${unitSelectHTML('qu',st.unit,true)}</div>
+      <div><label class="f">문항 유형</label><div class="seg" id="qt">${['전체','설명','용어'].map(t=>`<button type="button" class="${t===st.type?'on':''}" data-v="${t}">${t==='설명'?'개념 설명하기':t==='용어'?'개념 이름 쓰기':'전체'}</button>`).join('')}</div>
+        <label class="f">순서</label><div class="seg" id="qo">${['순서대로','무작위'].map(t=>`<button type="button" class="${t===st.order?'on':''}" data-v="${t}">${t}</button>`).join('')}</div></div>
+    </div>
+    <div class="row" style="margin-top:18px"><span class="muted" id="qn"></span><span class="spacer"></span><button class="btn primary" id="qgo">시작하기</button></div>
+  </div>
+  <div class="note"><b>채점 방식</b> — "개념 이름 쓰기"는 정확한 명칭일 때만 정답입니다(띄어쓰기·문장부호만 무시). "개념 설명하기"는 필수 키워드가 들어 있는지로 채점하는 참고용 채점입니다.</div>
+  <h2>단원별 진행 현황</h2><div id="qprog"></div>`;
+  const sel=()=>{const u=$('#qu').value,ty=$('#qt .on').dataset.v;return allConceptQ().filter(q=>(!u||q.unit===u)&&(ty==='전체'||q.type===ty))};
+  const count=()=>$('#qn').textContent=`${sel().length}문항`;
+  $('#qu').onchange=count;
+  document.querySelectorAll('.seg').forEach(g=>g.onclick=e=>{if(e.target.dataset.v){g.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===e.target));count()}});
+  $('#qgo').onclick=()=>{let list=sel();if(!list.length){toast('해당 문항이 없습니다.');return}
+    const s={unit:$('#qu').value,type:$('#qt .on').dataset.v,order:$('#qo .on').dataset.v};store.set('mt_qset',s);
+    if(s.order==='무작위')list=shuffle(list.slice());
+    const u=UNITS.find(x=>x.id===s.unit);startConcept(list,u?unitLabel(u):'전체 단원')};
+  count();
+  const best=bestScores('개념퀴즈');
+  $('#qprog').innerHTML=`<div class="card tablewrap"><table class="t"><thead><tr><th>단원</th><th>문항</th><th>푼 문항</th><th>평균</th></tr></thead><tbody>${UNITS.filter(u=>!u.pending).map(u=>{const done=u.quiz.filter(q=>q.id in best);const avg=done.length?Math.round(done.reduce((a,q)=>a+best[q.id],0)/done.length):null;
+    return `<tr><td><a href="#" onclick="startConcept(UNITS.find(x=>x.id==='${u.id}').quiz.map(q=>({...q,unit:'${u.id}'})),'${esc(unitLabel(u)).replace(/'/g,'')}');return false">${esc(unitLabel(u))}</a> <span class="muted small">${u.part}</span></td><td>${u.quiz.length}</td><td>${done.length}</td><td>${avg===null?'–':avg+'%'}</td></tr>`}).join('')}</tbody></table></div>`;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+let CQ=null;
+function startConcept(list,title){CQ={list,i:0,title,scores:[]};renderTabs('quiz');showConcept()}
+function showConcept(){
+  stopTimer(); window.scrollTo(0,0);
+  const c=CQ.list[CQ.i]; CQ.t0=Date.now(); CQ.done=false;
+  const u=UNITS.find(x=>x.id===c.unit); const isTerm=c.type==='용어';
+  $app.innerHTML=`<div class="row"><span class="pill">${isTerm?'개념 이름 쓰기':'개념 설명하기'}</span><span class="muted small">${esc(u.part)} · ${esc(unitLabel(u))}</span><span class="spacer"></span><span class="muted small">${CQ.i+1} / ${CQ.list.length}</span><span class="timer" id="tm">0:00</span></div>
+  <div class="bar" style="margin:10px 0 4px"><i style="width:${100*CQ.i/CQ.list.length}%"></i></div>
+  <div class="card" style="margin-top:12px">
+    <div class="qtext">${esc(c.q)}</div>
+    ${isTerm?`<input type="text" id="ans" placeholder="개념의 이름을 정확하게 쓰세요" autocomplete="off">`:`<textarea id="ans" placeholder="핵심 용어를 포함하여 설명하세요."></textarea>`}
+    <div class="row" style="margin-top:12px"><button class="btn ghost" id="gu">모르겠어요 (답 보기)</button><span class="spacer"></span><button class="btn primary" id="sb">제출</button></div>
+    <div id="res"></div>
+  </div>
+  <div class="row" style="margin-top:14px"><button class="btn sm ghost" onclick="go('quiz')">목록으로</button></div>`;
+  const a=$('#ans');a.focus();
+  a.addEventListener('keydown',e=>{if((isTerm&&e.key==='Enter')||((e.ctrlKey||e.metaKey)&&e.key==='Enter')){e.preventDefault();submitConcept(false)}});
+  $('#sb').onclick=()=>submitConcept(false); $('#gu').onclick=()=>submitConcept(true);
+  TIMER=setInterval(()=>{const el=$('#tm');if(el)el.textContent=fmt((Date.now()-CQ.t0)/1000)},500);
+}
+function submitConcept(giveUp){
+  if(CQ.done) return;
+  const c=CQ.list[CQ.i], u=UNITS.find(x=>x.id===c.unit), isTerm=c.type==='용어';
+  const text=giveUp?'':$('#ans').value;
+  if(!giveUp&&!text.trim()){toast('답안을 입력하세요.');return}
+  CQ.done=true; stopTimer();
+  const secs=Math.round((Date.now()-CQ.t0)/1000);
+  let rate, hits='', miss='', detailHTML='';
+  if(isTerm){
+    const ok=!giveUp&&c.accept.map(x=>normShort(x,'name')).includes(normShort(text,'name'));
+    rate=ok?100:0; if(!ok) miss=c.accept[0];
+    detailHTML=giveUp?'':(ok?`<span class="chip good">✓ 정확한 명칭입니다</span>`:`<span class="chip bad">✗ ${esc(text)}</span>`);
+  } else {
+    const g=gradeEssay(text,[{label:'',pts:10,kw:c.kw}]); rate=giveUp?0:g.rate;
+    const d=g.detail[0]; hits=d.hits.join(', '); miss=d.miss.join(', ');
+    detailHTML=giveUp?'':`${d.hits.map(w=>`<span class="chip good">✓ ${esc(w)}</span>`).join('')}${d.miss.map(w=>`<span class="chip bad">✗ ${esc(w)}</span>`).join('')}`;
+  }
+  CQ.scores.push(rate);
+  $('#ans').readOnly=true; $('#sb').disabled=true; $('#gu').disabled=true;
+  const cls=rate>=80?'good':rate>=50?'warn':'bad';
+  $('#res').innerHTML=`<div class="result ${cls}">
+    <div class="row"><b style="font-size:18px">${giveUp?'답 보기':(isTerm?(rate?'정답':'오답'):rate+'%')}</b></div>
+    ${detailHTML?`<div style="margin-top:8px">${detailHTML}</div>`:''}
+    <div style="margin-top:10px"><b>${isTerm?'정답 명칭':'모범답안'}</b><div class="model">${esc(c.a)}</div></div>
+    ${isTerm&&c.accept.length>1?`<div class="small muted" style="margin-top:6px">인정 답안: ${c.accept.map(esc).join(', ')}</div>`:''}
+    <div class="small" style="margin-top:8px"><a href="#" onclick="go('notes','${u.id}');return false">관련 내용 정리 보기 →</a></div>
+  </div>
+  <div class="row" style="margin-top:14px"><span class="spacer"></span><button class="btn primary" id="nx">${CQ.i+1<CQ.list.length?'다음 문항 →':'결과 보기'}</button></div>`;
+  $('#nx').focus(); $('#nx').onclick=()=>{CQ.i++;CQ.i<CQ.list.length?showConcept():conceptSummary()};
+  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'개념퀴즈',qid:c.id,group:`${u.part} ${unitLabel(u)}`,unit:isTerm?'개념 이름 쓰기':'개념 설명하기',
+    question:c.q,answer:giveUp?'(모르겠어요)':text,score:rate,max:100,rate,hits,miss,secs,limit:'',over:''});
+}
+function conceptSummary(){
+  const avg=CQ.scores.length?Math.round(CQ.scores.reduce((a,b)=>a+b,0)/CQ.scores.length):0;
+  const weak=CQ.list.filter((c,i)=>CQ.scores[i]<70);
+  $app.innerHTML=`<h1>${esc(CQ.title)} 퀴즈 결과</h1><div class="grid g3"><div class="card"><div class="muted small">푼 문항</div><div class="stat">${CQ.scores.length}</div></div><div class="card"><div class="muted small">평균 득점률</div><div class="stat">${avg}%</div></div><div class="card"><div class="muted small">다시 볼 문항(70% 미만)</div><div class="stat">${weak.length}</div></div></div>
+  <div class="row" style="margin-top:18px">${weak.length?`<button class="btn primary" id="rw">부족한 문항 다시 풀기</button>`:''}<button class="btn" onclick="go('quiz')">다른 단원 고르기</button></div>`;
+  if(weak.length)$('#rw').onclick=()=>startConcept(weak,CQ.title+' · 다시 풀기');
 }
 
 go(USER?'home':'login'); flushQueue();
