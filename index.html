@@ -133,7 +133,7 @@ footer.site{border-top:1px solid var(--line);padding:18px 0;color:var(--muted);f
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <div class="brand" onclick="go('home')">수학교육론<small>임용 대비</small></div>
+  <div class="brand" onclick="go('home')">수학교육론<small>임용 대비 with 또빈쌤</small></div>
   <nav class="tabs" id="tabs"></nav>
 </div></header>
 <main><div class="wrap" id="app"></div></main>
@@ -254,7 +254,7 @@ function vLogin(){
       <input type="text" id="sid" inputmode="numeric" autocomplete="off" required placeholder="예: 20231234">
       <label class="f" for="nm">이름</label>
       <input type="text" id="nm" autocomplete="off" required placeholder="예: 홍길동">
-      <div class="row" style="margin-top:18px"><button class="btn primary" style="width:100%">시작하기</button></div>
+      <div class="row" style="margin-top:18px"><button class="btn primary" style="width:100%">로그인</button></div>
     </form>
     ${CFG.GAS_URL?'':'<div class="note">현재 구글 시트 주소가 설정되지 않아 기록은 이 브라우저에만 저장됩니다. (config.js의 GAS_URL)</div>'}
   </div>`;
@@ -275,23 +275,21 @@ function vHome(){
   const avg=done.length?Math.round(done.reduce((a,e)=>a+best[e.id],0)/done.length):null;
   const nShort=EXAMS.filter(e=>e.kind==='short').length;
   $app.innerHTML=`
-  <h1>${esc(USER.name)} 님, 오늘도 한 문항씩.</h1>
-  <p class="lead">학번 ${esc(USER.sid)} · <a href="#" onclick="logout();return false">학번 바꾸기</a></p>
+  <h1>${esc(USER.name)}, 임고 뿌셔!! 하띵 하띵!!</h1>
+  <p class="lead">학번 ${esc(USER.sid)} · <a href="#" onclick="logout();return false">로그아웃</a></p>
   <div class="grid g3">
     <div class="card"><div class="muted small">푼 기출 문항</div><div class="stat">${done.length}<span class="muted small"> / ${EXAMS.length}</span></div><div class="bar"><i style="width:${100*done.length/EXAMS.length}%"></i></div></div>
     <div class="card"><div class="muted small">문항별 최고 득점률 평균</div><div class="stat">${avg===null?'–':avg+'%'}</div></div>
     <div class="card"><div class="muted small">푼 개념 퀴즈</div><div class="stat">${Object.keys(bestScores('개념퀴즈')).length}<span class="muted small"> / ${allConceptQ().length}</span></div><div class="bar"><i style="width:${100*Object.keys(bestScores('개념퀴즈')).length/Math.max(1,allConceptQ().length)}%"></i></div></div>
   </div>
   <h2>학습 메뉴</h2>
-  <div class="grid g2">
+  <div class="grid g3">
     <div class="card home-tile" onclick="go('notes')"><span class="pill">내용 정리</span><div class="t">빵꾸노트 목차별 핵심 정리 ${UNITS.length}단원</div>
       <div class="d">'신론' 20단원과 '교재연구' & '성취기준' 13단원을 목차 순서대로 정리했습니다.</div></div>
     <div class="card home-tile" onclick="go('quiz')"><span class="pill">개념 퀴즈</span><div class="t">개념 설명하기 · 개념 이름 쓰기 ${allConceptQ().length}문항</div>
       <div class="d">단원을 골라 개념을 설명하거나, 설명을 읽고 개념의 이름을 정확하게 써 봅니다.</div></div>
     <div class="card home-tile" onclick="go('exam')"><span class="pill">기출문제</span><div class="t">2016~2026 수학교육론 기출 ${EXAMS.length}문항</div>
       <div class="d">전공 A·B의 수학교육론(매년 24점) 문항을 이론별·연도별로 모았습니다. 제한 시간을 두고 풉니다.</div></div>
-    <div class="card home-tile" onclick="go('records')"><span class="pill">내 기록</span><div class="t">이론별 득점률과 제출 내역</div>
-      <div class="d">어떤 이론에서 점수가 낮은지 확인하고 다시 풀어 보세요.</div></div>
   </div>
   <div class="note"><b>채점 방식</b> — 단답형(2점)은 명칭을 정확하게 썼을 때만 정답입니다(띄어쓰기만 무시). 서술형은 필수 키워드가 들어 있는지로 채점하는 참고용 채점이므로, 논리 전개는 모범답안과 비교해 스스로 점검하세요.</div>`;
 }
