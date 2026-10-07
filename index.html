@@ -296,9 +296,9 @@ function vHome(){
   </div>
   <h2>학습 메뉴</h2>
   <div class="grid g3">
-    <div class="card home-tile" onclick="go('notes')"><span class="pill">내용 정리</span><div class="t">빵꾸노트 목차별 핵심 정리 ${UNITS.length}단원</div>
+    <div class="card home-tile" onclick="go('notes')"><span class="pill">내용 정리</span><div class="t">목차별 핵심 정리 ${UNITS.length}단원</div>
       <div class="d">수학교육신론 20단원과 수교재 & 성취기준 13단원을 목차 순서대로 정리했습니다.</div></div>
-    <div class="card home-tile" onclick="go('quiz')"><span class="pill">개념 퀴즈</span><div class="t">개념 설명하기 · 개념 이름 쓰기 ${allConceptQ().length}문항</div>
+    <div class="card home-tile" onclick="go('quiz')"><span class="pill">개념 퀴즈</span><div class="t">단답형 · 서술형 ${allConceptQ().length}문항</div>
       <div class="d">단원을 골라 개념을 설명하거나, 설명을 읽고 개념의 이름을 정확하게 써 봅니다.</div></div>
     <div class="card home-tile" onclick="go('exam')"><span class="pill">기출문제</span><div class="t">2016~2026 수학교육론 기출 ${EXAMS.length}문항</div>
       <div class="d">전공 A·B의 수학교육론(매년 24점) 문항을 이론별·연도별로 모았습니다. 제한 시간을 두고 풉니다.</div></div>
@@ -478,7 +478,7 @@ function vNotes(uid){
     : `${u.sections.map((s,i)=>`<section class="sec"><h3>${i+1}. ${esc(s.title)}</h3>${md(s.body)}</section>`).join('')}
        ${u.quiz.length?`<div class="row" style="margin-top:18px"><button class="btn primary" onclick="startConcept(UNITS.find(x=>x.id==='${u.id}').quiz.map(q=>({...q,unit:'${u.id}'})),'${esc(unitLabel(u)).replace(/'/g,'')}',true)">이 단원 퀴즈 풀기 (${u.quiz.length}문항)</button></div>`:''}`;
   const idx=UNITS.indexOf(u), prev=UNITS[idx-1], next=UNITS[idx+1];
-  $app.innerHTML=`<h1>내용 정리</h1><p class="lead">빵꾸노트 목차를 따라 단원별 핵심 내용을 정리했습니다.</p>
+  $app.innerHTML=`<h1>내용 정리</h1><p class="lead">단원별 핵심 내용을 정리했습니다.</p>
   <div class="notes-layout">
     <nav class="toc card">${side}</nav>
     <div>
@@ -495,17 +495,17 @@ function vNotes(uid){
 function allConceptQ(){return UNITS.flatMap(u=>u.quiz.map(q=>({...q,unit:u.id})))}
 function vQuizSetup(){
   const st=Object.assign({unit:'',type:'전체',order:'순서대로',scope:'전체'},store.get('mt_qset',{}));
-  $app.innerHTML=`<h1>개념 퀴즈</h1><p class="lead">개념을 설명하는 문항과, 설명을 읽고 개념의 이름을 쓰는 문항입니다.</p>
+  $app.innerHTML=`<h1>개념 퀴즈</h1><p class="lead">설명을 읽고 개념의 이름을 쓰는 단답형 문항과, 개념을 설명하는 서술형 문항입니다.</p>
   <div class="card">
     <div class="grid g2">
       <div><label class="f">단원</label>${unitSelectHTML('qu',st.unit,true)}</div>
-      <div><label class="f">문항 유형</label><div class="seg" id="qt">${['전체','설명','용어'].map(t=>`<button type="button" class="${t===st.type?'on':''}" data-v="${t}">${t==='설명'?'개념 설명하기':t==='용어'?'개념 이름 쓰기':'전체'}</button>`).join('')}</div>
+      <div><label class="f">문항 유형</label><div class="seg" id="qt">${['전체','용어','설명'].map(t=>`<button type="button" class="${t===st.type?'on':''}" data-v="${t}">${t==='설명'?'서술형':t==='용어'?'단답형':'전체'}</button>`).join('')}</div>
         <label class="f">순서</label><div class="seg" id="qo">${['순서대로','무작위'].map(t=>`<button type="button" class="${t===st.order?'on':''}" data-v="${t}">${t}</button>`).join('')}</div>
         <label class="f">범위</label><div class="seg" id="qs">${['전체','안 푼 문항','70% 미만'].map(t=>`<button type="button" class="${t===st.scope?'on':''}" data-v="${t}">${t}</button>`).join('')}</div></div>
     </div>
     <div class="row" style="margin-top:18px"><span class="muted" id="qn"></span><span class="spacer"></span><button class="btn primary" id="qgo">시작하기</button></div>
   </div>
-  <div class="note"><b>채점 방식</b> — "개념 이름 쓰기"는 정확한 명칭일 때만 정답입니다(띄어쓰기·문장부호만 무시). "개념 설명하기"는 필수 키워드가 들어 있는지로 채점하는 참고용 채점입니다.</div>
+  <div class="note"><b>채점 방식</b> — "단답형"은 정확한 명칭일 때만 정답입니다(띄어쓰기·문장부호만 무시). "서술형"은 필수 키워드가 들어 있는지로 채점하는 참고용 채점입니다.</div>
   <h2>단원별 진행 현황</h2><div id="qprog"></div>`;
   const sel=()=>{const u=$('#qu').value,ty=$('#qt .on').dataset.v,sc=$('#qs .on').dataset.v,b=bestScores('개념퀴즈');
     return allConceptQ().filter(q=>(!u||q.unit===u)&&(ty==='전체'||q.type===ty)&&(sc==='전체'||(sc==='안 푼 문항'?!(q.id in b):(q.id in b)&&b[q.id]<70)))};
@@ -540,7 +540,7 @@ function showConcept(){
   stopTimer(); window.scrollTo(0,0);
   const c=CQ.list[CQ.i]; CQ.t0=Date.now(); CQ.done=false;
   const u=UNITS.find(x=>x.id===c.unit); const isTerm=c.type==='용어';
-  $app.innerHTML=`<div class="row"><span class="pill">${isTerm?'개념 이름 쓰기':'개념 설명하기'}</span><span class="muted small">${esc(partName(u.part))} · ${esc(unitLabel(u))}</span><span class="spacer"></span><span class="muted small">${CQ.i+1} / ${CQ.list.length}</span><span class="timer" id="tm">0:00</span></div>
+  $app.innerHTML=`<div class="row"><span class="pill">${isTerm?'단답형':'서술형'}</span><span class="muted small">${esc(partName(u.part))} · ${esc(unitLabel(u))}</span><span class="spacer"></span><span class="muted small">${CQ.i+1} / ${CQ.list.length}</span><span class="timer" id="tm">0:00</span></div>
   <div class="bar" style="margin:10px 0 4px"><i style="width:${100*Object.keys(CQ.res).length/CQ.list.length}%"></i></div>
   ${CQ.list.length>1?qnavHTML():''}
   <div class="card" style="margin-top:12px">
@@ -589,7 +589,7 @@ function submitConcept(giveUp){
   <div class="row" style="margin-top:14px"><span class="spacer"></span><button class="btn primary" id="nx">${CQ.i+1<CQ.list.length?'다음 문항 →':'결과 보기'}</button></div>`;
   $('#nx').focus(); $('#nx').onclick=()=>{CQ.i++;CQ.i<CQ.list.length?showConcept():conceptSummary()};
   document.querySelectorAll('.qnav button')[CQ.i]?.classList.remove('old','good','warn','bad');document.querySelectorAll('.qnav button')[CQ.i]?.classList.add(rateCls(rate));
-  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'개념퀴즈',qid:c.id,group:`${partName(u.part)} ${unitLabel(u)}`,unit:isTerm?'개념 이름 쓰기':'개념 설명하기',
+  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'개념퀴즈',qid:c.id,group:`${partName(u.part)} ${unitLabel(u)}`,unit:isTerm?'단답형':'서술형',
     question:c.q,answer:giveUp?'(모르겠어요)':text,score:rate,max:100,rate,hits,miss,secs,limit:'',over:''});
 }
 function conceptSummary(){
