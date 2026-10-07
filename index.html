@@ -296,21 +296,23 @@ function vHome(){
 function bestScores(mode='기출문제'){const b={};for(const h of store.get('mt_hist_'+USER.sid,[])){if(h.mode!==mode)continue;b[h.qid]=Math.max(b[h.qid]??-1,h.rate)}return b}
 
 /* ───────────── 기출문제 목록 ───────────── */
-function allTypes(){const m={};EXAMS.forEach(e=>e.types.forEach(t=>m[t]=(m[t]||0)+1));return Object.entries(m).sort((a,b)=>b[1]-a[1])}
+function examUnitGroups(){return UNITS.map(u=>[u,EXAMS.filter(e=>e.units.includes(u.id))]).filter(g=>g[1].length)}
+function examUnitNames(e){return e.units.map(id=>{const u=UNITS.find(x=>x.id===id);return u?(u.part==='신론'?'신론 ':'교재 ')+u.no+'. '+u.title:id})}
 function vExamSetup(){
   const st=store.get('mt_eset',{by:'이론'});
-  $app.innerHTML=`<h1>기출문제</h1><p class="lead">2016~2026학년도 중등 1차 전공 A·B의 수학교육론 문항(매년 24점)입니다. 문항을 누르면 제한 시간이 시작됩니다. 묶음 전체를 이어서 푸는 세트 풀이도 할 수 있어요.</p>
+  $app.innerHTML=`<h1>기출문제</h1><p class="lead">2016~2026학년도 중등 1차 전공 A·B의 수학교육론 문항(매년 24점)입니다. 이론별 보기는 빵꾸노트 목차 순서이며, 여러 단원에 걸친 문항은 각 단원에 모두 들어 있습니다. 문항을 누르면 제한 시간이 시작됩니다. 묶음 전체를 이어서 푸는 세트 풀이도 할 수 있어요.</p>
   <div class="row"><div class="seg" id="eby">${['이론','연도'].map(t=>`<button type="button" class="${t===st.by?'on':''}" data-v="${t}">${t}별 보기</button>`).join('')}</div></div>
   <div id="elist" style="margin-top:16px"></div>
   <div class="note">문항 출처: 한국교육과정평가원 중등학교교사 임용후보자 선정경쟁시험 기출문제. 제한 시간은 시험 시간(90분/40점)을 배점에 비례해 정한 것입니다(2점 4분, 4점 9분, 10점 논술형 25분).</div>`;
   $('#eby').onclick=e=>{if(!e.target.dataset.v)return;st.by=e.target.dataset.v;store.set('mt_eset',st);$('#eby').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.by));draw()};
   function draw(){
     const best=bestScores();
-    const groups=st.by==='이론'?allTypes().map(([t])=>[t,EXAMS.filter(e=>e.types.includes(t))]):[...new Set(EXAMS.map(e=>e.year))].sort((a,b)=>b-a).map(y=>[y+'학년도',EXAMS.filter(e=>e.year===y)]);
-    $('#elist').innerHTML=groups.map(([name,list],gi)=>{const tot=list.reduce((a,e)=>a+e.time,0);const pts=list.reduce((a,e)=>a+e.pts,0);
-      return `<details class="card" style="margin-bottom:10px" ${gi===0?'open':''}><summary><b style="color:var(--ink)">${esc(name)}</b> <span class="muted small">· ${list.length}문항 · ${pts}점 · ${tot}분</span></summary>
+    const groups=st.by==='이론'?examUnitGroups().map(([u,list])=>[unitLabel(u),list,u.part]):[...new Set(EXAMS.map(e=>e.year))].sort((a,b)=>b-a).map(y=>[y+'학년도',EXAMS.filter(e=>e.year===y)]);
+    let lastPart=null;
+    $('#elist').innerHTML=groups.map(([name,list,part],gi)=>{const head=part&&part!==lastPart?`<h2 style="margin:${gi?22:4}px 0 10px">${esc(PARTS.find(p=>p[0]===part)[1])}</h2>`:'';lastPart=part||lastPart;const tot=list.reduce((a,e)=>a+e.time,0);const pts=list.reduce((a,e)=>a+e.pts,0);
+      return head+`<details class="card" style="margin-bottom:10px" ${gi===0?'open':''}><summary><b style="color:var(--ink)">${esc(name)}</b> <span class="muted small">· ${list.length}문항 · ${pts}점 · ${tot}분</span></summary>
       <div class="row" style="margin:12px 0"><button class="btn sm primary" onclick='startExam(${JSON.stringify(list.map(e=>e.id))},${JSON.stringify(name)},true)'>세트로 풀기 (총 ${tot}분)</button></div>
-      <div class="list">${list.map(e=>`<div class="item" onclick='startExam(["${e.id}"],${JSON.stringify(name)},false)'><div class="meta"><b>${e.year}학년도 ${e.form} ${e.no}번 <span class="muted small">[${e.kind==='short'?'단답형':'서술형'} · ${e.pts}점 · ${e.time}분]</span></b><span class="muted small">${e.types.map(esc).join(' · ')}</span></div>${e.id in best?`<span class="chip ${best[e.id]>=70?'good':best[e.id]>=40?'warn':'bad'}">최고 ${best[e.id]}%</span>`:'<span class="chip">미응시</span>'}</div>`).join('')}</div></details>`}).join('');
+      <div class="list">${list.map(e=>`<div class="item" onclick='startExam(["${e.id}"],${JSON.stringify(name)},false)'><div class="meta"><b>${e.year}학년도 ${e.form} ${e.no}번 <span class="muted small">[${e.kind==='short'?'단답형':'서술형'} · ${e.pts}점 · ${e.time}분]</span></b><span class="muted small">${examUnitNames(e).map(esc).join(' · ')}</span></div>${e.id in best?`<span class="chip ${best[e.id]>=70?'good':best[e.id]>=40?'warn':'bad'}">최고 ${best[e.id]}%</span>`:'<span class="chip">미응시</span>'}</div>`).join('')}</div></details>`}).join('');
   }
   draw();
 }
@@ -334,7 +336,7 @@ function showExam(){
     : `<label class="f" for="ans" style="margin-top:0">답안 작성</label>
        <textarea id="ans" style="min-height:${e.pts>=10?420:260}px" placeholder="㉠, ㉡ 등 문항이 요구하는 순서대로 쓰세요."></textarea>
        <div class="row" style="margin-top:12px"><span class="muted small" id="cc">0자</span><span class="spacer"></span><button class="btn primary" id="sb">제출하고 채점</button></div>`;
-  $app.innerHTML=`<div class="row"><span class="pill">${e.year}학년도 ${e.form} ${e.no}번</span><span class="muted small">${isShort?'단답형':'서술형'} · ${e.pts}점 · ${e.types.map(esc).join(' · ')}</span><span class="spacer"></span>${EQ.list.length>1?`<span class="muted small">${EQ.i+1} / ${EQ.list.length}</span>`:''}<span class="muted small">${EQ.asSet?'세트 남은 시간':'남은 시간'}</span><span class="timer" id="tm"></span></div>
+  $app.innerHTML=`<div class="row"><span class="pill">${e.year}학년도 ${e.form} ${e.no}번</span><span class="muted small">${isShort?'단답형':'서술형'} · ${e.pts}점 · ${examUnitNames(e).map(esc).join(' · ')}</span><span class="spacer"></span>${EQ.list.length>1?`<span class="muted small">${EQ.i+1} / ${EQ.list.length}</span>`:''}<span class="muted small">${EQ.asSet?'세트 남은 시간':'남은 시간'}</span><span class="timer" id="tm"></span></div>
   <div class="exam-layout" style="margin-top:14px">
     <div class="left"><img class="qimg" src="${e.img}" alt="${e.year}학년도 ${e.form} ${e.no}번 문항"></div>
     <div class="card">${answerUI}<div id="res"></div></div>
@@ -388,7 +390,7 @@ function submitExam(){
   $('#nx').focus();
   const hits=isShort?g.detail.filter(d=>d.ok).map(d=>d.label).join(', '):g.detail.map(d=>d.hits.join('/')).filter(Boolean).join(', ');
   const miss=isShort?g.detail.filter(d=>!d.ok).map(d=>`${d.label}(정답: ${d.expect})`).join(', '):g.detail.map(d=>d.miss.join('/')).filter(Boolean).join(', ');
-  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'기출문제',qid:e.id,group:`${e.year}학년도 ${e.form} ${e.no}번`,unit:e.types.join(', '),
+  sendRecord({ts:new Date().toISOString(),sid:USER.sid,name:USER.name,mode:'기출문제',qid:e.id,group:`${e.year}학년도 ${e.form} ${e.no}번`,unit:examUnitNames(e).join(', '),
     question:`${e.year}학년도 ${e.form} ${e.no}번 (${isShort?'단답형':'서술형'} ${e.pts}점)`,answer:text,
     score:g.score,max:g.max,rate:g.rate,hits,miss,secs,limit:e.time*60,over:over?'Y':''});
 }
@@ -406,14 +408,14 @@ function vRecords(){
   const q=queue().length;
   $app.innerHTML=`<h1>내 기록</h1><p class="lead">${esc(USER.name)} (${esc(USER.sid)}) · 이 기기에서 제출한 ${hist.length}건</p>
   ${CFG.GAS_URL?`<div class="note">구글 시트 전송: ${q?`<b>${q}건 대기 중</b> <button class="btn sm" onclick="flushQueue().then(()=>go('records'))">다시 보내기</button>`:'모두 전송됨'}</div>`:`<div class="note">구글 시트 주소가 설정되지 않아 이 브라우저에만 저장됩니다.</div>`}
-  <h2>기출문제 · 이론 유형별 득점률</h2><div id="bytype"></div>
+  <h2>기출문제 · 빵꾸노트 단원별 득점률</h2><div id="bytype"></div>
   <h2>개념 퀴즈 · 단원별 득점률</h2><div id="byunit"></div>
   <h2>최근 제출</h2>
   <div class="card tablewrap"><table class="t"><thead><tr><th>시각</th><th>구분</th><th>문항</th><th>득점률</th><th>소요</th></tr></thead><tbody>
   ${hist.slice(0,200).map(h=>`<tr><td class="small">${new Date(h.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td class="small">${esc(h.mode)}</td><td class="small">${esc(h.group)}<div class="muted">${esc(h.mode==='개념퀴즈'?String(h.question).slice(0,50)+(String(h.question).length>50?'…':''):h.unit)}</div></td><td>${h.rate}%</td><td>${fmt(h.secs)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">아직 기록이 없습니다.</td></tr>'}
   </tbody></table></div>`;
   const best=bestScores();
-  const rows=allTypes().map(([t])=>{const list=EXAMS.filter(e=>e.types.includes(t));const done=list.filter(e=>e.id in best);return [t,list.length,done.length,done.length?Math.round(done.reduce((a,e)=>a+best[e.id],0)/done.length):null]}).filter(r=>r[2]);
+  const rows=examUnitGroups().map(([u,list])=>{const t=u.part+' '+unitLabel(u);const done=list.filter(e=>e.id in best);return [t,list.length,done.length,done.length?Math.round(done.reduce((a,e)=>a+best[e.id],0)/done.length):null]}).filter(r=>r[2]);
   $('#bytype').innerHTML=rows.length?`<div class="card">${rows.map(([t,n,d,a])=>`<div style="margin:6px 0"><div class="row small"><span>${esc(t)}</span><span class="spacer"></span><span class="muted">${d}/${n}문항 · 평균 ${a}%</span></div><div class="bar"><i style="width:${a}%"></i></div></div>`).join('')}</div>`:'<p class="muted">기출문제를 풀면 이론별 득점률이 표시됩니다.</p>';
   const cb=bestScores('개념퀴즈');
   const urows=UNITS.filter(u=>!u.pending).map(u=>{const d=u.quiz.filter(q=>q.id in cb);return [u,d.length,d.length?Math.round(d.reduce((a,q)=>a+cb[q.id],0)/d.length):null]}).filter(r=>r[1]);
